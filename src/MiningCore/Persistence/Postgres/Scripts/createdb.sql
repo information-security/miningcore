@@ -1,4 +1,6 @@
-﻿set role miningcore;
+﻿-- TODO: rework indexes
+
+set role miningcore;
 
 CREATE TABLE shares
 (
@@ -66,7 +68,6 @@ CREATE TABLE balance_changes
 	amount decimal(28,12) NOT NULL DEFAULT 0,
 	usage TEXT NULL,
 	created TIMESTAMP NOT NULL
-	primary key (projectid, poolid, address)
 );
 
 CREATE INDEX IDX_BALANCE_CHANGES_POOL_ADDRESS_CREATED on balance_changes(projectid, poolid, address, created desc);
