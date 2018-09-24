@@ -39,5 +39,6 @@ namespace MiningCore.Persistence.Repositories
         double? GetAccumulatedShareDifficultyBetweenCreated(IDbConnection con, string projectId, string poolId, DateTime start, DateTime end);
         MinerWorkerHashes[] GetAccumulatedShareDifficultyTotal(IDbConnection con, string projectId, string poolId);
         MinerWorkerHashes[] GetHashAccumulationBetweenCreated(IDbConnection con, string projectId, string poolId, DateTime start, DateTime end);
+        MinerWorkerHashes[] GetAllProjectsHashAccumulationBetweenCreated(IDbConnection con, string poolId, DateTime start, DateTime end);
     }
 }

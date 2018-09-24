@@ -89,6 +89,19 @@ namespace MiningCore.Persistence.Postgres.Repositories
 
             return mapper.Map<PoolStats>(entity);
         }
+        
+        public PoolStats GetAllProjectsLastPoolStats(IDbConnection con, string poolId)
+        {
+            logger.LogInvoke();
+
+            var query = "SELECT * FROM poolstats WHERE poolid = @poolId ORDER BY created DESC FETCH NEXT 1 ROWS ONLY";
+
+            var entity = con.QuerySingleOrDefault<Entities.PoolStats>(query, new { poolId });
+            if (entity == null)
+                return null;
+
+            return mapper.Map<PoolStats>(entity);
+        }
 
         public decimal GetTotalPoolPayments(IDbConnection con, string projectId, string poolId)
         {

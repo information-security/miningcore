@@ -31,6 +31,7 @@ namespace MiningCore.Persistence.Repositories
         void InsertPoolStats(IDbConnection con, IDbTransaction tx, PoolStats stats);
         void InsertMinerWorkerPerformanceStats(IDbConnection con, IDbTransaction tx, MinerWorkerPerformanceStats stats);
         PoolStats GetLastPoolStats(IDbConnection con, string projectId, string poolId);
+        PoolStats GetAllProjectsLastPoolStats(IDbConnection con, string poolId);
         decimal GetTotalPoolPayments(IDbConnection con, string projectId, string poolId);
         PoolStats[] GetPoolPerformanceBetweenHourly(IDbConnection con, string projectId, string poolId, DateTime start, DateTime end);
         MinerStats GetMinerStats(IDbConnection con, IDbTransaction tx, string projectId, string poolId, string miner);

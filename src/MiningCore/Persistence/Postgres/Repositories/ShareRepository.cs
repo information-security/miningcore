@@ -157,5 +157,17 @@ namespace MiningCore.Persistence.Postgres.Repositories
             return con.Query<MinerWorkerHashes>(query, new { projectId, poolId, start, end })
                 .ToArray();
         }
+        
+        public MinerWorkerHashes[] GetAllProjectsHashAccumulationBetweenCreated(IDbConnection con, string poolId, DateTime start, DateTime end)
+        {
+            logger.LogInvoke(new[] { poolId });
+
+            var query = "SELECT SUM(difficulty), COUNT(difficulty), MIN(created) AS firstshare, MAX(created) AS lastshare, miner, worker FROM shares " +
+                        "WHERE poolid = @poolId AND created >= @start AND created <= @end " +
+                        "GROUP BY miner, worker";
+
+            return con.Query<MinerWorkerHashes>(query, new { poolId, start, end })
+                .ToArray();
+        }
     }
 }
