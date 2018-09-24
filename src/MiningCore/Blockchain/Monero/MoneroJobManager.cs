@@ -325,6 +325,7 @@ namespace MiningCore.Blockchain.Monero
             var (share, blobHex, blobHash) = job.ProcessShare(request.Nonce, workerJob.ExtraNonce, request.Hash, worker);
 
             // enrich share with common data
+            share.ProjectId = context.ProjectId;
             share.PoolId = poolConfig.Id;
             share.IpAddress = worker.RemoteEndpoint.Address.ToString();
             share.Miner = context.MinerName;

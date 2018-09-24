@@ -25,6 +25,7 @@ namespace MiningCore.Blockchain.Ethereum
     public class EthereumWorkerContext : WorkerContextBase
     {
         public string MinerName { get; set; }
+        public string ProjectId { get; set; }
         public string WorkerName { get; set; }
         public bool IsInitialWorkSent { get; set; } = false;
 

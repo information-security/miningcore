@@ -395,10 +395,13 @@ namespace MiningCore.Blockchain.Ethereum
             logger.LogInvoke(LogCat, new[] { worker.ConnectionId });
             var context = worker.ContextAs<EthereumWorkerContext>();
 
-            // var miner = request[0];
+            var workerValue = (request[0] as string)?.Trim();
             var jobId = request[1];
             var nonce = request[2];
             EthereumJob job;
+            
+            if (string.IsNullOrEmpty(workerValue))
+                throw new StratumException(StratumError.Other, "missing or invalid workername");
 
             // stale?
             lock(jobLock)
@@ -406,12 +409,23 @@ namespace MiningCore.Blockchain.Ethereum
                 if (!validJobs.TryGetValue(jobId, out job))
                     throw new StratumException(StratumError.MinusOne, "stale share");
             }
+            
+            // extract worker/miner/projectId
+            var split = workerValue.Split('.');
+            var minerName = split[0];
+            var projectId = split[1];
+            var workerName = split.Length > 2 ? split[2] : null;
 
             // validate & process
             var (share, fullNonceHex, headerHash, mixHash) = await job.ProcessShareAsync(worker, nonce, ethash);
 
             // enrich share with common data
+            share.ProjectId = projectId;
             share.PoolId = poolConfig.Id;
+            share.IpAddress = worker.RemoteEndpoint.Address.ToString();
+            share.Miner = minerName;
+            share.Worker = workerName;
+            share.UserAgent = context.UserAgent;
             share.NetworkDifficulty = BlockchainStats.NetworkDifficulty;
             share.Source = clusterConfig.ClusterName;
             share.Created = clock.Now;

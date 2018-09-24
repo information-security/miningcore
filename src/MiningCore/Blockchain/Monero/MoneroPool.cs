@@ -84,7 +84,8 @@ namespace MiningCore.Blockchain.Monero
             // extract worker/miner/paymentid
             var split = loginRequest.Login.Split('.');
             context.MinerName = split[0].Trim();
-            context.WorkerName = split.Length > 1 ? split[1].Trim() : null;
+            context.ProjectId = split.Length > 1 ? split[1].Trim() : null;
+            context.WorkerName = split.Length > 2 ? split[2].Trim() : null;
             context.UserAgent = loginRequest.UserAgent?.Trim();
             var passParts = loginRequest.Password?.Split(PasswordControlVarsSeparator);
 
@@ -97,7 +98,8 @@ namespace MiningCore.Blockchain.Monero
             }
 
             // validate login
-            var result = manager.ValidateAddress(context.MinerName);
+            // TODO: check project ID existence in projects repo
+            var result = manager.ValidateAddress(context.MinerName) && !string.IsNullOrEmpty(context.ProjectId);;
 
             context.IsSubscribed = result;
             context.IsAuthorized = result;

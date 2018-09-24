@@ -114,11 +114,15 @@ namespace MiningCore.Blockchain.Bitcoin
             // extract worker/miner
             var split = workerValue?.Split('.');
             var minerName = split?.FirstOrDefault()?.Trim();
-            var workerName = split?.Skip(1).FirstOrDefault()?.Trim() ?? string.Empty;
+            var projectId = split?.Skip(1).FirstOrDefault()?.Trim() ?? string.Empty;
+            var workerName = split?.Skip(2).FirstOrDefault()?.Trim() ?? string.Empty;
 
             // assumes that workerName is an address
-            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && await manager.ValidateAddressAsync(minerName);
+            // TODO: check project ID existence in projects repo
+            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && await manager.ValidateAddressAsync(minerName)
+                                                                    && !string.IsNullOrEmpty(projectId);
             context.MinerName = minerName;
+            context.ProjectId = projectId;
             context.WorkerName = workerName;
 
             if (context.IsAuthorized)

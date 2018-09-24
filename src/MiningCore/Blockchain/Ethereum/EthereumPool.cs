@@ -119,11 +119,15 @@ namespace MiningCore.Blockchain.Ethereum
             // extract worker/miner
             var workerParts = workerValue?.Split('.');
             var minerName = workerParts?.Length > 0 ? workerParts[0].Trim() : null;
-            var workerName = workerParts?.Length > 1 ? workerParts[1].Trim() : null;
+            var projectId = workerParts?.Length > 1 ? workerParts[1].Trim() : null;
+            var workerName = workerParts?.Length > 2 ? workerParts[2].Trim() : null;
 
             // assumes that workerName is an address
-            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName);
+            // TODO: check project ID existence in projects repo
+            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName)
+                                                                    && !string.IsNullOrEmpty(projectId);
             context.MinerName = minerName;
+            context.ProjectId = projectId;
             context.WorkerName = workerName;
 
             // respond
