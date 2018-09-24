@@ -102,22 +102,6 @@ namespace MiningCore.Payments.PaymentSchemes
                 }
             }
 
-            // delete discarded shares
-            if (shareCutOffDate.HasValue)
-            {
-                var cutOffCount = shareRepo.CountSharesBeforeCreated(con, tx, block.ProjectId, poolConfig.Id, shareCutOffDate.Value);
-
-                if (cutOffCount > 0)
-                {
-                    LogDiscardedShares(poolConfig, block, shareCutOffDate.Value);
-
-#if !DEBUG
-                    logger.Info(() => $"Deleting {cutOffCount} discarded shares before {shareCutOffDate.Value:O}");
-                    shareRepo.DeleteSharesBeforeCreated(con, tx, poolConfig.Id, shareCutOffDate.Value);
-#endif
-                }
-            }
-
             // diagnostics
             var totalShareCount = shares.Values.ToList().Sum(x => new decimal(x));
             var totalRewards = rewards.Values.ToList().Sum(x => x);
