@@ -103,49 +103,6 @@ namespace MiningCore.Payments
             logger.Warn(() => $"[{LogCategory}] Retry {1} in {timeSpan} due to: {ex}");
         }
 
-        protected virtual void PersistPayments(Balance[] balances, string transactionConfirmation)
-        {
-            try
-            {
-                faultPolicy.Execute(() =>
-                {
-                    cf.RunTx((con, tx) =>
-                    {
-                        foreach(var balance in balances)
-                        {
-                            if (!string.IsNullOrEmpty(transactionConfirmation) &&
-                                !poolConfig.RewardRecipients.Any(x => x.Address == balance.Address))
-                            {
-                                // record payment
-                                var payment = new Payment
-                                {
-                                    PoolId = poolConfig.Id,
-                                    Coin = poolConfig.Coin.Type,
-                                    Address = balance.Address,
-                                    Amount = balance.Amount,
-                                    Created = clock.Now,
-                                    TransactionConfirmationData = transactionConfirmation
-                                };
-
-                                paymentRepo.Insert(con, tx, payment);
-                            }
-
-                            // reset balance
-                            logger.Debug(() => $"[{LogCategory}] Resetting balance of {balance.Address}");
-                            balanceRepo.AddAmount(con, tx, poolConfig.Id, poolConfig.Coin.Type, balance.Address, -balance.Amount, $"Balance reset after payment");
-                        }
-                    });
-                });
-            }
-
-            catch(Exception ex)
-            {
-                logger.Error(ex, () => $"[{LogCategory}] Failed to persist the following payments: " +
-                    $"{JsonConvert.SerializeObject(balances.Where(x => x.Amount > 0).ToDictionary(x => x.Address, x => x.Amount))}");
-                throw;
-            }
-        }
-
         public string FormatAmount(decimal amount)
         {
             return $"{amount:0.#####} {poolConfig.Coin.Type}";

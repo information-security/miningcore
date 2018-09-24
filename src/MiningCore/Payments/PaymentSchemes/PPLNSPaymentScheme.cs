@@ -98,14 +98,14 @@ namespace MiningCore.Payments.PaymentSchemes
                 if (amount > 0)
                 {
                     logger.Info(() => $"Adding {payoutHandler.FormatAmount(amount)} to balance of {address} for {FormatUtil.FormatQuantity(shares[address])} ({shares[address]}) shares for block {block.BlockHeight}");
-                    balanceRepo.AddAmount(con, tx, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for {FormatUtil.FormatQuantity(shares[address])} shares for block {block.BlockHeight}");
+                    balanceRepo.AddAmount(con, tx, block.ProjectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for {FormatUtil.FormatQuantity(shares[address])} shares for block {block.BlockHeight}");
                 }
             }
 
             // delete discarded shares
             if (shareCutOffDate.HasValue)
             {
-                var cutOffCount = shareRepo.CountSharesBeforeCreated(con, tx, poolConfig.Id, shareCutOffDate.Value);
+                var cutOffCount = shareRepo.CountSharesBeforeCreated(con, tx, block.ProjectId, poolConfig.Id, shareCutOffDate.Value);
 
                 if (cutOffCount > 0)
                 {
@@ -140,7 +140,7 @@ namespace MiningCore.Payments.PaymentSchemes
                 logger.Info(() => $"Fetching page {currentPage} of discarded shares for pool {poolConfig.Id}, block {block.BlockHeight}");
 
                 var page = shareReadFaultPolicy.Execute(() =>
-                    cf.Run(con => shareRepo.ReadSharesBeforeCreated(con, poolConfig.Id, before, false, pageSize)));
+                    cf.Run(con => shareRepo.ReadSharesBeforeCreated(con, block.ProjectId, poolConfig.Id, before, false, pageSize)));
 
                 currentPage++;
 
@@ -198,7 +198,7 @@ namespace MiningCore.Payments.PaymentSchemes
                 logger.Info(() => $"Fetching page {currentPage} of shares for pool {poolConfig.Id}, block {block.BlockHeight}");
 
                 var page = shareReadFaultPolicy.Execute(() =>
-                    cf.Run(con => shareRepo.ReadSharesBeforeCreated(con, poolConfig.Id, before, inclusive, pageSize))); //, sw, logger));
+                    cf.Run(con => shareRepo.ReadSharesBeforeCreated(con, block.ProjectId, poolConfig.Id, before, inclusive, pageSize))); //, sw, logger));
 
                 inclusive = false;
                 currentPage++;

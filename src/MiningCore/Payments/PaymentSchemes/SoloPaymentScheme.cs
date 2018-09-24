@@ -82,14 +82,14 @@ namespace MiningCore.Payments.PaymentSchemes
                 if (amount > 0)
                 {
                     logger.Info(() => $"Adding {payoutHandler.FormatAmount(amount)} to balance of {address} for block {block.BlockHeight}");
-                    balanceRepo.AddAmount(con, tx, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
+                    balanceRepo.AddAmount(con, tx, block.ProjectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
                 }
             }
 
             // delete discarded shares
             if (shareCutOffDate.HasValue)
             {
-                var cutOffCount = shareRepo.CountSharesBeforeCreated(con, tx, poolConfig.Id, shareCutOffDate.Value);
+                var cutOffCount = shareRepo.CountSharesBeforeCreated(con, tx, block.ProjectId, poolConfig.Id, shareCutOffDate.Value);
 
                 if (cutOffCount > 0)
                 {

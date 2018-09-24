@@ -95,7 +95,9 @@ namespace MiningCore.Payments
                     var scheme = ctx.ResolveKeyed<IPayoutScheme>(pool.PaymentProcessing.PayoutScheme);
 
                     await UpdatePoolBalancesAsync(pool, handler, scheme);
-                    await PayoutPoolBalancesAsync(pool, handler);
+                    
+                    // we do not pay mined coins from miningcore in boomstarter.network
+                    //await PayoutPoolBalancesAsync(pool, handler);
                 }
 
                 catch(InvalidOperationException ex)
@@ -113,7 +115,7 @@ namespace MiningCore.Payments
         private async Task UpdatePoolBalancesAsync(PoolConfig pool, IPayoutHandler handler, IPayoutScheme scheme)
         {
             // get pending blockRepo for pool
-            var pendingBlocks = cf.Run(con => blockRepo.GetPendingBlocksForPool(con, pool.Id));
+            var pendingBlocks = cf.Run(con => blockRepo.GetAllProjectsPendingBlocksForPool(con, pool.Id));
 
             // classify
             var updatedBlocks = await handler.ClassifyBlocksAsync(pendingBlocks);
@@ -157,29 +159,6 @@ namespace MiningCore.Payments
                 logger.Info(() => $"No updated blocks for pool {pool.Id}");
         }
 
-        private async Task PayoutPoolBalancesAsync(PoolConfig pool, IPayoutHandler handler)
-        {
-            var poolBalancesOverMinimum = cf.Run(con =>
-                balanceRepo.GetPoolBalancesOverThreshold(con, pool.Id, pool.PaymentProcessing.MinimumPayment));
-
-            if (poolBalancesOverMinimum.Length > 0)
-            {
-                try
-                {
-                    await handler.PayoutAsync(poolBalancesOverMinimum);
-                }
-
-                catch(Exception ex)
-                {
-                    await NotifyPayoutFailureAsync(poolBalancesOverMinimum, pool, ex);
-                    throw;
-                }
-            }
-
-            else
-                logger.Info(() => $"No balances over configured minimum payout for pool {pool.Id}");
-        }
-
         private Task NotifyPayoutFailureAsync(Balance[] balances, PoolConfig pool, Exception ex)
         {
             messageBus.SendMessage(new PaymentNotification(pool.Id, ex.Message, balances.Sum(x => x.Amount)));
@@ -194,7 +173,7 @@ namespace MiningCore.Payments
             var to = block.Created;
 
             // get last block for pool
-            var lastBlock = cf.Run(con => blockRepo.GetBlockBefore(con, pool.Id, new[]
+            var lastBlock = cf.Run(con => blockRepo.GetBlockBefore(con, block.ProjectId, pool.Id, new[]
             {
                 BlockStatus.Confirmed,
                 BlockStatus.Orphaned,
@@ -206,7 +185,7 @@ namespace MiningCore.Payments
 
             // get combined diff of all shares for block
             var accumulatedShareDiffForBlock = cf.Run(con =>
-                shareRepo.GetAccumulatedShareDifficultyBetweenCreated(con, pool.Id, from, to));
+                shareRepo.GetAccumulatedShareDifficultyBetweenCreated(con, block.ProjectId, pool.Id, from, to));
 
             // handler has the final say
             if (accumulatedShareDiffForBlock.HasValue)
