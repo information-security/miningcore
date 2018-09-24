@@ -144,7 +144,7 @@ namespace MiningCore.Mining
 
                 // fetch stats
                 var result = readFaultPolicy.Execute(() =>
-                    cf.Run(con => shareRepo.GetHashAccumulationBetweenCreated(con, poolId, target, start)));
+                    cf.Run(con => shareRepo.GetAllProjectsHashAccumulationBetweenCreated(con, poolId, target, start)));
 
                 var byMiner = result.GroupBy(x => x.Miner).ToArray();
 
