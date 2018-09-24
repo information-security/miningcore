@@ -25,6 +25,7 @@ namespace MiningCore.Persistence.Postgres.Entities
     public class Share
     {
         public string PoolId { get; set; }
+        public string ProjectId { get; set; }
         public long BlockHeight { get; set; }
         public string PayoutInfo { get; set; }
         public string Miner { get; set; }

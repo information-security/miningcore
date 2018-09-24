@@ -42,18 +42,20 @@ namespace MiningCore.Persistence.Postgres.Repositories
         private readonly IMapper mapper;
         private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 
-        public void AddAmount(IDbConnection con, IDbTransaction tx, string poolId, CoinType coin, string address, decimal amount, string usage)
+        public void AddAmount(IDbConnection con, IDbTransaction tx, string projectId, string poolId,
+            CoinType coin, string address, decimal amount, string usage)
         {
             logger.LogInvoke();
 
             var now = DateTime.UtcNow;
 
             // record balance change
-            var query = "INSERT INTO balance_changes(poolid, coin, address, amount, usage, created) " +
-                "VALUES(@poolid, @coin, @address, @amount, @usage, @created)";
+            var query = "INSERT INTO balance_changes(projectid, poolid, coin, address, amount, usage, created) " +
+                "VALUES(@projectid, @poolid, @coin, @address, @amount, @usage, @created)";
 
             var balanceChange = new Entities.BalanceChange
             {
+                ProjectId = projectId,
                 PoolId = poolId,
                 Coin = coin.ToString(),
                 Created = now,
@@ -65,15 +67,16 @@ namespace MiningCore.Persistence.Postgres.Repositories
             con.Execute(query, balanceChange, tx);
 
             // update balance
-            query = "SELECT * FROM balances WHERE poolid = @poolId AND coin = @coin AND address = @address";
+            query = "SELECT * FROM balances WHERE projectid = @projectId AND poolid = @poolId AND coin = @coin AND address = @address";
 
-            var balance = con.Query<Entities.Balance>(query, new { poolId, coin = coin.ToString(), address }, tx)
+            var balance = con.Query<Entities.Balance>(query, new { projectId, poolId, coin = coin.ToString(), address }, tx)
                 .FirstOrDefault();
 
             if (balance == null)
             {
                 balance = new Entities.Balance
                 {
+                    ProjectId = projectId,
                     PoolId = poolId,
                     Coin = coin.ToString(),
                     Created = now,
@@ -82,8 +85,8 @@ namespace MiningCore.Persistence.Postgres.Repositories
                     Updated = now
                 };
 
-                query = "INSERT INTO balances(poolid, coin, address, amount, created, updated) " +
-                    "VALUES(@poolid, @coin, @address, @amount, @created, @updated)";
+                query = "INSERT INTO balances(projectid, poolid, coin, address, amount, created, updated) " +
+                    "VALUES(@projectId, @poolId, @coin, @address, @amount, @created, @updated)";
 
                 con.Execute(query, balance, tx);
             }
@@ -91,10 +94,11 @@ namespace MiningCore.Persistence.Postgres.Repositories
             else
             {
                 query = "UPDATE balances SET amount = amount + @amount, updated = now() at time zone 'utc' " +
-                    "WHERE poolid = @poolId AND coin = @coin AND address = @address";
+                    "WHERE projectid = @projectId AND poolid = @poolId AND coin = @coin AND address = @address";
 
                 con.Execute(query, new
                 {
+                    projectId,
                     poolId,
                     address,
                     coin = coin.ToString().ToUpper(),
@@ -103,13 +107,13 @@ namespace MiningCore.Persistence.Postgres.Repositories
             }
         }
 
-        public Balance[] GetPoolBalancesOverThreshold(IDbConnection con, string poolId, decimal minimum)
+        public Balance[] GetPoolBalancesOverThreshold(IDbConnection con, string projectId, string poolId, decimal minimum)
         {
             logger.LogInvoke();
 
-            var query = "SELECT * FROM balances WHERE poolid = @poolId AND amount >= @minimum";
+            var query = "SELECT * FROM balances WHERE projectid = @projectId AND poolid = @poolId AND amount >= @minimum";
 
-            return con.Query<Entities.Balance>(query, new { poolId, minimum })
+            return con.Query<Entities.Balance>(query, new { projectId, poolId, minimum })
                 .Select(mapper.Map<Balance>)
                 .ToArray();
         }

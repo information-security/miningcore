@@ -25,6 +25,7 @@ namespace MiningCore.Persistence.Model
     public class MinerWorkerStatsPreAgg
     {
         public string PoolId { get; set; }
+        public string ProjectId { get; set; }
         public string Miner { get; set; }
         public string Worker { get; set; }
 

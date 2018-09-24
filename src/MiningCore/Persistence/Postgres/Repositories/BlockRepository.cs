@@ -48,8 +48,8 @@ namespace MiningCore.Persistence.Postgres.Repositories
             var mapped = mapper.Map<Entities.Block>(block);
 
             var query =
-                "INSERT INTO blocks(poolid, blockheight, networkdifficulty, status, type, transactionconfirmationdata, miner, reward, effort, confirmationprogress, source, hash, created) " +
-                "VALUES(@poolid, @blockheight, @networkdifficulty, @status, @type, @transactionconfirmationdata, @miner, @reward, @effort, @confirmationprogress, @source, @hash, @created)";
+                "INSERT INTO blocks(projectid, poolid, blockheight, networkdifficulty, status, type, transactionconfirmationdata, miner, reward, effort, confirmationprogress, source, hash, created) " +
+                "VALUES(@projectid, @poolid, @blockheight, @networkdifficulty, @status, @type, @transactionconfirmationdata, @miner, @reward, @effort, @confirmationprogress, @source, @hash, @created)";
 
             con.Execute(query, mapped, tx);
         }
@@ -72,15 +72,16 @@ namespace MiningCore.Persistence.Postgres.Repositories
             con.Execute(query, mapped, tx);
         }
 
-        public Block[] PageBlocks(IDbConnection con, string poolId, BlockStatus[] status, int page, int pageSize)
+        public Block[] PageBlocks(IDbConnection con, string projectId, string poolId, BlockStatus[] status, int page, int pageSize)
         {
             logger.LogInvoke(new[] { poolId });
 
-            var query = "SELECT * FROM blocks WHERE poolid = @poolid AND status = ANY(@status) " +
+            var query = "SELECT * FROM blocks WHERE projectid = @projectid AND poolid = @poolid AND status = ANY(@status) " +
                 "ORDER BY created DESC OFFSET @offset FETCH NEXT (@pageSize) ROWS ONLY";
 
             return con.Query<Entities.Block>(query, new
                 {
+                    projectId,    
                     poolId,
                     status = status.Select(x => x.ToString().ToLower()).ToArray(),
                     offset = page * pageSize,
@@ -90,26 +91,28 @@ namespace MiningCore.Persistence.Postgres.Repositories
                 .ToArray();
         }
 
-        public Block[] GetPendingBlocksForPool(IDbConnection con, string poolId)
+        public Block[] GetPendingBlocksForPool(IDbConnection con, string projectId, string poolId)
         {
             logger.LogInvoke(new[] { poolId });
 
-            var query = "SELECT * FROM blocks WHERE poolid = @poolid AND status = @status";
+            var query = "SELECT * FROM blocks WHERE projectid = @projectid AND poolid = @poolid AND status = @status";
 
-            return con.Query<Entities.Block>(query, new { status = BlockStatus.Pending.ToString().ToLower(), poolid = poolId })
+            return con.Query<Entities.Block>(query, new { status = BlockStatus.Pending.ToString().ToLower(),
+                    poolid = poolId, projectid = projectId  })
                 .Select(mapper.Map<Block>)
                 .ToArray();
         }
 
-        public Block GetBlockBefore(IDbConnection con, string poolId, BlockStatus[] status, DateTime before)
+        public Block GetBlockBefore(IDbConnection con, string projectId, string poolId, BlockStatus[] status, DateTime before)
         {
             logger.LogInvoke(new[] { poolId });
 
-            var query = "SELECT * FROM blocks WHERE poolid = @poolid AND status = ANY(@status) AND created < @before " +
+            var query = "SELECT * FROM blocks WHERE projectid = @projectid AND poolid = @poolid AND status = ANY(@status) AND created < @before " +
                 "ORDER BY created DESC FETCH NEXT (1) ROWS ONLY";
 
             return con.Query<Entities.Block>(query, new
                 {
+                    projectId,
                     poolId,
                     before,
                     status = status.Select(x => x.ToString().ToLower()).ToArray()

@@ -26,8 +26,8 @@ namespace MiningCore.Persistence.Repositories
 {
     public interface IBalanceRepository
     {
-        void AddAmount(IDbConnection con, IDbTransaction tx, string poolId, CoinType coin, string address, decimal amount, string usage);
+        void AddAmount(IDbConnection con, IDbTransaction tx, string projectId, string poolId, CoinType coin, string address, decimal amount, string usage);
 
-        Balance[] GetPoolBalancesOverThreshold(IDbConnection con, string poolId, decimal minimum);
+        Balance[] GetPoolBalancesOverThreshold(IDbConnection con, string projectId, string poolId, decimal minimum);
     }
 }

@@ -25,6 +25,7 @@ namespace MiningCore.Persistence.Model
     public class Block
     {
         public long Id { get; set; }
+        public string ProjectId { get; set; }
         public string PoolId { get; set; }
         public ulong BlockHeight { get; set; }
         public double NetworkDifficulty { get; set; }

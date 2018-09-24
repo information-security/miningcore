@@ -2,6 +2,7 @@
 
 CREATE TABLE shares
 (
+  projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	blockheight BIGINT NOT NULL,
 	difficulty DOUBLE PRECISION NOT NULL,
@@ -15,13 +16,14 @@ CREATE TABLE shares
 	created TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IDX_SHARES_POOL_MINER on shares(poolid, miner);
-CREATE INDEX IDX_SHARES_POOL_CREATED ON shares(poolid, created);
-CREATE INDEX IDX_SHARES_POOL_MINER_DIFFICULTY on shares(poolid, miner, difficulty);
+CREATE INDEX IDX_SHARES_POOL_MINER on shares(projectid, poolid, miner);
+CREATE INDEX IDX_SHARES_POOL_CREATED ON shares(projectid, poolid, created);
+CREATE INDEX IDX_SHARES_POOL_MINER_DIFFICULTY on shares(projectid, poolid, miner, difficulty);
 
 CREATE TABLE blocks
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+  projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	blockheight BIGINT NOT NULL,
 	networkdifficulty DOUBLE PRECISION NOT NULL,
@@ -36,13 +38,14 @@ CREATE TABLE blocks
     hash TEXT NULL,
 	created TIMESTAMP NOT NULL,
 
-    CONSTRAINT BLOCKS_POOL_HEIGHT UNIQUE (poolid, blockheight, type) DEFERRABLE INITIALLY DEFERRED
+    CONSTRAINT BLOCKS_POOL_HEIGHT UNIQUE (projectid, poolid, blockheight, type) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE INDEX IDX_BLOCKS_POOL_BLOCK_STATUS on blocks(poolid, blockheight, status);
 
 CREATE TABLE balances
 (
+  projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	coin TEXT NOT NULL,
 	address TEXT NOT NULL,
@@ -50,25 +53,28 @@ CREATE TABLE balances
 	created TIMESTAMP NOT NULL,
 	updated TIMESTAMP NOT NULL,
 
-	primary key(poolid, address, coin)
+	primary key(projectid, poolid, address, coin)
 );
 
 CREATE TABLE balance_changes
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+	projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	coin TEXT NOT NULL,
 	address TEXT NOT NULL,
 	amount decimal(28,12) NOT NULL DEFAULT 0,
 	usage TEXT NULL,
 	created TIMESTAMP NOT NULL
+	primary key (projectid, poolid, address)
 );
 
-CREATE INDEX IDX_BALANCE_CHANGES_POOL_ADDRESS_CREATED on balance_changes(poolid, address, created desc);
+CREATE INDEX IDX_BALANCE_CHANGES_POOL_ADDRESS_CREATED on balance_changes(projectid, poolid, address, created desc);
 
 CREATE TABLE payments
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+	projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	coin TEXT NOT NULL,
 	address TEXT NOT NULL,
@@ -77,11 +83,12 @@ CREATE TABLE payments
 	created TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IDX_PAYMENTS_POOL_COIN_WALLET on payments(poolid, coin, address);
+CREATE INDEX IDX_PAYMENTS_POOL_COIN_WALLET on payments(projectid, poolid, coin, address);
 
 CREATE TABLE poolstats
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+  projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	connectedminers INT NOT NULL DEFAULT 0,
 	poolhashrate DOUBLE PRECISION NOT NULL DEFAULT 0,
@@ -94,12 +101,13 @@ CREATE TABLE poolstats
 	created TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IDX_POOLSTATS_POOL_CREATED on poolstats(poolid, created);
-CREATE INDEX IDX_POOLSTATS_POOL_CREATED_HOUR on poolstats(poolid, date_trunc('hour',created));
+CREATE INDEX IDX_POOLSTATS_POOL_CREATED on poolstats(projectid, poolid, created);
+CREATE INDEX IDX_POOLSTATS_POOL_CREATED_HOUR on poolstats(projectid, poolid, date_trunc('hour',created));
 
 CREATE TABLE minerstats
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+  projectid TEXT NOT NULL,
 	poolid TEXT NOT NULL,
 	miner TEXT NOT NULL,
 	worker TEXT NOT NULL,
@@ -108,7 +116,7 @@ CREATE TABLE minerstats
 	created TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IDX_MINERSTATS_POOL_CREATED on minerstats(poolid, created);
-CREATE INDEX IDX_MINERSTATS_POOL_MINER_CREATED on minerstats(poolid, miner, created);
-CREATE INDEX IDX_MINERSTATS_POOL_MINER_CREATED_HOUR on minerstats(poolid, miner, date_trunc('hour',created));
-CREATE INDEX IDX_MINERSTATS_POOL_MINER_CREATED_DAY on minerstats(poolid, miner, date_trunc('day',created));
+CREATE INDEX IDX_MINERSTATS_POOL_CREATED on minerstats(projectid, poolid, created);
+CREATE INDEX IDX_MINERSTATS_POOL_MINER_CREATED on minerstats(projectid, poolid, miner, created);
+CREATE INDEX IDX_MINERSTATS_POOL_MINER_CREATED_HOUR on minerstats(projectid, poolid, miner, date_trunc('hour',created));
+CREATE INDEX IDX_MINERSTATS_POOL_MINER_CREATED_DAY on minerstats(projectid, poolid, miner, date_trunc('day',created));

@@ -26,6 +26,7 @@ namespace MiningCore.Persistence.Model
     public class BalanceChange
     {
         public long Id { get; set; }
+        public string ProjectId { get; set; }
         public string PoolId { get; set; }
         public CoinType Coin { get; set; }
         public string Address { get; set; }
