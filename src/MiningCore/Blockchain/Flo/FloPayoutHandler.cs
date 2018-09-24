@@ -84,7 +84,7 @@ namespace MiningCore.Blockchain.Flo
             return Task.FromResult(true);
         }
 
-        public override Task<decimal> UpdateBlockRewardBalancesAsync(IDbConnection con, IDbTransaction tx, Block block, PoolConfig pool)
+        public override Task<decimal> UpdateBlockRewardBalancesAsync(IDbConnection con, IDbTransaction tx, Block block, string projectId, PoolConfig pool)
         {
             var blockRewardRemaining = block.Reward;
 
@@ -100,7 +100,7 @@ namespace MiningCore.Blockchain.Flo
                 if (address != poolConfig.Address)
                 {
                     logger.Info(() => $"Adding {FormatAmount(amount)} to balance of {address}");
-                    balanceRepo.AddAmount(con, tx, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
+                    balanceRepo.AddAmount(con, tx, projectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
                 }
             }
 
