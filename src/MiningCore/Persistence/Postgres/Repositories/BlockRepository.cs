@@ -91,14 +91,13 @@ namespace MiningCore.Persistence.Postgres.Repositories
                 .ToArray();
         }
 
-        public Block[] GetPendingBlocksForPool(IDbConnection con, string projectId, string poolId)
+        public Block[] GetAllProjectsPendingBlocksForPool(IDbConnection con, string poolId)
         {
             logger.LogInvoke(new[] { poolId });
 
-            var query = "SELECT * FROM blocks WHERE projectid = @projectid AND poolid = @poolid AND status = @status";
+            var query = "SELECT * FROM blocks WHERE poolid = @poolid AND status = @status";
 
-            return con.Query<Entities.Block>(query, new { status = BlockStatus.Pending.ToString().ToLower(),
-                    poolid = poolId, projectid = projectId  })
+            return con.Query<Entities.Block>(query, new { status = BlockStatus.Pending.ToString().ToLower(), poolid = poolId })
                 .Select(mapper.Map<Block>)
                 .ToArray();
         }
