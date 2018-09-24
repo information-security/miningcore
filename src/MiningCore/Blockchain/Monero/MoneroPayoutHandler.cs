@@ -79,52 +79,6 @@ namespace MiningCore.Blockchain.Monero
 
         protected override string LogCategory => "Monero Payout Handler";
 
-        private bool HandleTransferResponse(DaemonResponse<TransferResponse> response, params Balance[] balances)
-        {
-            if (response.Error == null)
-            {
-                var txHash = response.Response.TxHash;
-                var txFee = (decimal) response.Response.Fee / MoneroConstants.SmallestUnit[poolConfig.Coin.Type];
-
-                logger.Info(() => $"[{LogCategory}] Payout transaction id: {txHash}, TxFee was {FormatAmount(txFee)}");
-
-                PersistPayments(balances, txHash);
-                NotifyPayoutSuccess(poolConfig.Id, balances, new[] { txHash }, txFee);
-                return true;
-            }
-
-            else
-            {
-                logger.Error(() => $"[{LogCategory}] Daemon command '{MWC.Transfer}' returned error: {response.Error.Message} code {response.Error.Code}");
-
-                NotifyPayoutFailure(poolConfig.Id, balances, $"Daemon command '{MWC.Transfer}' returned error: {response.Error.Message} code {response.Error.Code}", null);
-                return false;
-            }
-        }
-
-        private bool HandleTransferResponse(DaemonResponse<TransferSplitResponse> response, params Balance[] balances)
-        {
-            if (response.Error == null)
-            {
-                var txHashes = response.Response.TxHashList;
-                var txFees = response.Response.FeeList.Select(x => (decimal) x / MoneroConstants.SmallestUnit[poolConfig.Coin.Type]).ToArray();
-
-                logger.Info(() => $"[{LogCategory}] Split-Payout transaction ids: {string.Join(", ", txHashes)}, Corresponding TxFees were {string.Join(", ", txFees.Select(FormatAmount))}");
-
-                PersistPayments(balances, txHashes.First());
-                NotifyPayoutSuccess(poolConfig.Id, balances, txHashes, txFees.Sum());
-                return true;
-            }
-
-            else
-            {
-                logger.Error(() => $"[{LogCategory}] Daemon command '{MWC.TransferSplit}' returned error: {response.Error.Message} code {response.Error.Code}");
-
-                NotifyPayoutFailure(poolConfig.Id, balances, $"Daemon command '{MWC.TransferSplit}' returned error: {response.Error.Message} code {response.Error.Code}", null);
-                return false;
-            }
-        }
-
         private async Task<MoneroNetworkType> GetNetworkTypeAsync()
         {
             if (!networkType.HasValue)
@@ -136,52 +90,6 @@ namespace MiningCore.Blockchain.Monero
             }
 
             return networkType.Value;
-        }
-
-        private async Task<bool> PayoutBatch(Balance[] balances)
-        {
-            // build request
-            var request = new TransferRequest
-            {
-                Destinations = balances
-                    .Where(x => x.Amount > 0)
-                    .Select(x =>
-                    {
-                        ExtractAddressAndPaymentId(x.Address, out var address, out var paymentId);
-
-                        return new TransferDestination
-                        {
-                            Address = address,
-                            Amount = (ulong) Math.Floor(x.Amount * MoneroConstants.SmallestUnit[poolConfig.Coin.Type])
-                        };
-                    }).ToArray(),
-
-                GetTxKey = true
-            };
-
-            if (request.Destinations.Length == 0)
-                return true;
-
-            logger.Info(() => $"[{LogCategory}] Paying out {FormatAmount(balances.Sum(x => x.Amount))} to {balances.Length} addresses");
-
-            // send command
-            var transferResponse = await walletDaemon.ExecuteCmdSingleAsync<TransferResponse>(MWC.Transfer, request);
-
-            // gracefully handle error -4 (transaction would be too large. try /transfer_split)
-            if (transferResponse.Error?.Code == -4)
-            {
-                if (walletSupportsTransferSplit)
-                {
-                    logger.Error(() => $"[{LogCategory}] Daemon command '{MWC.Transfer}' returned error: {transferResponse.Error.Message} code {transferResponse.Error.Code}");
-                    logger.Info(() => $"[{LogCategory}] Retrying transfer using {MWC.TransferSplit}");
-
-                    var transferSplitResponse = await walletDaemon.ExecuteCmdSingleAsync<TransferSplitResponse>(MWC.TransferSplit, request);
-
-                    return HandleTransferResponse(transferSplitResponse, balances);
-                }
-            }
-
-            return HandleTransferResponse(transferResponse, balances);
         }
 
         private void ExtractAddressAndPaymentId(string input, out string address, out string paymentId)
@@ -205,52 +113,6 @@ namespace MiningCore.Blockchain.Monero
 
             else
                 address = input;
-        }
-
-        private async Task PayoutToPaymentId(Balance balance)
-        {
-            ExtractAddressAndPaymentId(balance.Address, out var address, out var paymentId);
-
-            var isIntegratedAddress = string.IsNullOrEmpty(paymentId);
-
-            // build request
-            var request = new TransferRequest
-            {
-                Destinations = new[]
-                {
-                    new TransferDestination
-                    {
-                        Address = address,
-                        Amount = (ulong) Math.Floor(balance.Amount * MoneroConstants.SmallestUnit[poolConfig.Coin.Type])
-                    }
-                },
-                PaymentId = paymentId,
-                GetTxKey = true
-            };
-
-            if (!isIntegratedAddress)
-                request.PaymentId = paymentId;
-
-            if (!isIntegratedAddress)
-                logger.Info(() => $"[{LogCategory}] Paying out {FormatAmount(balance.Amount)} to address {balance.Address} with paymentId {paymentId}");
-            else
-                logger.Info(() => $"[{LogCategory}] Paying out {FormatAmount(balance.Amount)} to integrated address {balance.Address}");
-
-            // send command
-            var result = await walletDaemon.ExecuteCmdSingleAsync<TransferResponse>(MWC.Transfer, request);
-
-            if (walletSupportsTransferSplit)
-            {
-                // gracefully handle error -4 (transaction would be too large. try /transfer_split)
-                if (result.Error?.Code == -4)
-                {
-                    logger.Info(() => $"[{LogCategory}] Retrying transfer using {MWC.TransferSplit}");
-
-                    result = await walletDaemon.ExecuteCmdSingleAsync<TransferResponse>(MWC.TransferSplit, request);
-                }
-            }
-
-            HandleTransferResponse(result, balance);
         }
 
         #region IPayoutHandler
@@ -382,7 +244,7 @@ namespace MiningCore.Blockchain.Monero
             return Task.FromResult(true);
         }
 
-        public Task<decimal> UpdateBlockRewardBalancesAsync(IDbConnection con, IDbTransaction tx, Block block, string projectId, PoolConfig pool)
+        public Task<decimal> UpdateBlockRewardBalancesAsync(IDbConnection con, IDbTransaction tx, Block block, PoolConfig pool)
         {
             var blockRewardRemaining = block.Reward;
 
@@ -398,7 +260,7 @@ namespace MiningCore.Blockchain.Monero
                 if (address != poolConfig.Address)
                 {
                     logger.Info(() => $"Adding {FormatAmount(amount)} to balance of {address}");
-                    balanceRepo.AddAmount(con, tx, projectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
+                    balanceRepo.AddAmount(con, tx, block.ProjectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
                 }
             }
 
@@ -406,115 +268,6 @@ namespace MiningCore.Blockchain.Monero
             blockRewardRemaining -= MoneroConstants.StaticTransactionFeeReserve;
 
             return Task.FromResult(blockRewardRemaining);
-        }
-
-        public async Task PayoutAsync(Balance[] balances)
-        {
-            Contract.RequiresNonNull(balances, nameof(balances));
-
-#if !DEBUG // ensure we have peers
-            var infoResponse = await daemon.ExecuteCmdAnyAsync<GetInfoResponse>(MC.GetInfo);
-            if (infoResponse.Error != null || infoResponse.Response == null ||
-                infoResponse.Response.IncomingConnectionsCount + infoResponse.Response.OutgoingConnectionsCount < 3)
-            {
-                logger.Warn(() => $"[{LogCategory}] Payout aborted. Not enough peers (4 required)");
-                return;
-            }
-#endif
-
-            // validate addresses
-            balances = balances
-                .Where(x =>
-                {
-                    ExtractAddressAndPaymentId(x.Address, out var address, out var paymentId);
-
-                    var addressPrefix = LibCryptonote.DecodeAddress(address);
-                    var addressIntegratedPrefix = LibCryptonote.DecodeIntegratedAddress(address);
-
-                    switch(networkType)
-                    {
-                        case MoneroNetworkType.Main:
-                            if (addressPrefix != MoneroConstants.AddressPrefix[poolConfig.Coin.Type] &&
-                                addressIntegratedPrefix != MoneroConstants.AddressPrefixIntegrated[poolConfig.Coin.Type])
-                            {
-                                logger.Warn(() => $"[{LogCategory}] Excluding payment to invalid address {x.Address}");
-                                return false;
-                            }
-
-                            break;
-
-                        case MoneroNetworkType.Test:
-                            if (addressPrefix != MoneroConstants.AddressPrefixTestnet[poolConfig.Coin.Type] &&
-                                addressIntegratedPrefix != MoneroConstants.AddressPrefixIntegratedTestnet[poolConfig.Coin.Type])
-                            {
-                                logger.Warn(() => $"[{LogCategory}] Excluding payment to invalid address {x.Address}");
-                                return false;
-                            }
-
-                            break;
-                    }
-
-                    return true;
-                })
-                .ToArray();
-
-            // simple balances first
-            var simpleBalances = balances
-                .Where(x =>
-                {
-                    ExtractAddressAndPaymentId(x.Address, out var address, out var paymentId);
-
-                    var hasPaymentId = paymentId != null;
-                    var isIntegratedAddress = false;
-                    var addressIntegratedPrefix = LibCryptonote.DecodeIntegratedAddress(address);
-
-                    switch(networkType)
-                    {
-                        case MoneroNetworkType.Main:
-                            if (addressIntegratedPrefix == MoneroConstants.AddressPrefixIntegrated[poolConfig.Coin.Type])
-                                isIntegratedAddress = true;
-                            break;
-
-                        case MoneroNetworkType.Test:
-                            if (addressIntegratedPrefix == MoneroConstants.AddressPrefixIntegratedTestnet[poolConfig.Coin.Type])
-                                isIntegratedAddress = true;
-                            break;
-                    }
-
-                    return !hasPaymentId && !isIntegratedAddress;
-                })
-                .ToArray();
-
-            if (simpleBalances.Length > 0)
-#if false
-                await PayoutBatch(simpleBalances);
-#else
-            {
-                var maxBatchSize = 28;
-                var pageSize = maxBatchSize;
-                var pageCount = (int) Math.Ceiling((double) simpleBalances.Length / pageSize);
-
-                for(var i = 0; i < pageCount; i++)
-                {
-                    var page = simpleBalances
-                        .Skip(i * pageSize)
-                        .Take(pageSize)
-                        .ToArray();
-
-                    if (!await PayoutBatch(page))
-                        break;
-                }
-            }
-#endif
-            // balances with paymentIds
-            var minimumPaymentToPaymentId = extraConfig?.MinimumPaymentToPaymentId ?? poolConfig.PaymentProcessing.MinimumPayment;
-
-            var paymentIdBalances = balances.Except(simpleBalances)
-                .Where(x => x.Amount >= minimumPaymentToPaymentId)
-                .ToArray();
-
-            foreach(var balance in paymentIdBalances)
-                await PayoutToPaymentId(balance);
         }
 
         #endregion // IPayoutHandler

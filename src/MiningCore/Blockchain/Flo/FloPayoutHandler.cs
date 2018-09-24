@@ -84,7 +84,7 @@ namespace MiningCore.Blockchain.Flo
             return Task.FromResult(true);
         }
 
-        public override Task<decimal> UpdateBlockRewardBalancesAsync(IDbConnection con, IDbTransaction tx, Block block, string projectId, PoolConfig pool)
+        public override Task<decimal> UpdateBlockRewardBalancesAsync(IDbConnection con, IDbTransaction tx, Block block, PoolConfig pool)
         {
             var blockRewardRemaining = block.Reward;
 
@@ -100,63 +100,11 @@ namespace MiningCore.Blockchain.Flo
                 if (address != poolConfig.Address)
                 {
                     logger.Info(() => $"Adding {FormatAmount(amount)} to balance of {address}");
-                    balanceRepo.AddAmount(con, tx, projectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
+                    balanceRepo.AddAmount(con, tx, block.ProjectId, poolConfig.Id, poolConfig.Coin.Type, address, amount, $"Reward for block {block.BlockHeight}");
                 }
             }
 
             return Task.FromResult(blockRewardRemaining);
-        }
-
-        public override async Task PayoutAsync(Balance[] balances)
-        {
-            Contract.RequiresNonNull(balances, nameof(balances));
-
-            // build args
-            var amounts = balances
-                .Where(x => x.Amount > 0)
-                .ToDictionary(x => x.Address, x => Math.Round(x.Amount, 8));
-
-            if (amounts.Count == 0)
-                return;
-
-            logger.Info(() => $"[{LogCategory}] Paying out {FormatAmount(balances.Sum(x => x.Amount))} to {balances.Length} addresses");
-
-            var smr = new SendManyRequest();
-            smr.FromAccount = String.Empty;
-            smr.Amounts = amounts;
-            smr.FloData = "MiningCore payout";
-
-            if (extraPoolPaymentProcessingConfig?.MinersPayTxFees == true)
-            {
-                // distribute transaction fee equally over all recipients
-                var subtractFeesFrom = amounts.Keys.ToArray();
-                smr.SubtractFeeFrom = subtractFeesFrom;
-            }
-
-            // send command
-            var result = await daemon.ExecuteCmdSingleAsync<string>(BitcoinCommands.SendMany, smr, new JsonSerializerSettings());
-
-            if (result.Error == null)
-            {
-                var txId = result.Response;
-
-                // check result
-                if (string.IsNullOrEmpty(txId))
-                    logger.Error(() => $"[{LogCategory}] {BitcoinCommands.SendMany} did not return a transaction id!");
-                else
-                    logger.Info(() => $"[{LogCategory}] Payout transaction id: {txId}");
-
-                PersistPayments(balances, txId);
-
-                NotifyPayoutSuccess(poolConfig.Id, balances, new[] {txId}, null);
-            }
-
-            else
-            {
-                logger.Error(() => $"[{LogCategory}] {BitcoinCommands.SendMany} returned error: {result.Error.Message} code {result.Error.Code}");
-
-                NotifyPayoutFailure(poolConfig.Id, balances, $"{BitcoinCommands.SendMany} returned error: {result.Error.Message} code {result.Error.Code}", null);
-            }
         }
 
         #endregion // IPayoutHandler
