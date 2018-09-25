@@ -84,16 +84,16 @@ namespace MiningCore.Api
 
             requestMap = new Dictionary<Regex, Func<HttpContext, Match, Task>>
             {
-                {new Regex("^/api/projects/(?<projectId>)/pools$", RegexOptions.Compiled), GetPoolInfosAsync},
-                {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/performance$", RegexOptions.Compiled), GetPoolPerformanceAsync},
-                {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/miners$", RegexOptions.Compiled), PagePoolMinersAsync},
+                {new Regex("^/api/pools$", RegexOptions.Compiled), GetPoolInfosAsync},
+                {new Regex("^/api/pools/(?<poolId>[^/]+)/performance$", RegexOptions.Compiled), GetPoolPerformanceAsync},
+                {new Regex("^/api/pools/(?<poolId>[^/]+)/miners$", RegexOptions.Compiled), PagePoolMinersAsync},
                 {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/blocks$", RegexOptions.Compiled), PagePoolBlocksPagedAsync},
                 {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/payments$", RegexOptions.Compiled), PagePoolPaymentsAsync},
-                {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)$", RegexOptions.Compiled), GetPoolInfoAsync},
+                {new Regex("^/api/pools/(?<poolId>[^/]+)$", RegexOptions.Compiled), GetPoolInfoAsync},
                 {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/miners/(?<address>[^/]+)/payments$", RegexOptions.Compiled), PageMinerPaymentsAsync},
                 {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/miners/(?<address>[^/]+)/balancechanges$", RegexOptions.Compiled), PageMinerBalanceChangesAsync},
-                {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/miners/(?<address>[^/]+)/performance$", RegexOptions.Compiled), GetMinerPerformanceAsync},
-                {new Regex("^/api/projects/(?<projectId>)/pools/(?<poolId>[^/]+)/miners/(?<address>[^/]+)$", RegexOptions.Compiled), GetMinerInfoAsync},
+                {new Regex("^/api/pools/(?<poolId>[^/]+)/miners/(?<address>[^/]+)/performance$", RegexOptions.Compiled), GetMinerPerformanceAsync},
+                {new Regex("^/api/pools/(?<poolId>[^/]+)/miners/(?<address>[^/]+)$", RegexOptions.Compiled), GetMinerInfoAsync},
             };
 
             requestMapAdmin = new Dictionary<Regex, Func<HttpContext, Match, Task>>
@@ -199,7 +199,7 @@ namespace MiningCore.Api
             }
         }
 
-        private WorkerPerformanceStatsContainer[] GetMinerPerformanceInternal(string mode, string projectId, PoolConfig pool, string address)
+        private WorkerPerformanceStatsContainer[] GetMinerPerformanceInternal(string mode, PoolConfig pool, string address)
         {
             Persistence.Model.Projections.WorkerPerformanceStatsContainer[] stats;
             var end = clock.Now;
@@ -216,7 +216,7 @@ namespace MiningCore.Api
                 var start = end.AddDays(-1);
 
                 stats = cf.Run(con => statsRepo.GetMinerPerformanceBetweenHourly(
-                    con, projectId, pool.Id, address, start, end));
+                    con, pool.Id, address, start, end));
             }
 
             else
@@ -230,7 +230,7 @@ namespace MiningCore.Api
                 var start = end.AddMonths(-1);
 
                 stats = cf.Run(con => statsRepo.GetMinerPerformanceBetweenDaily(
-                    con, projectId, pool.Id, address, start, end));
+                    con, pool.Id, address, start, end));
             }
 
             // map
@@ -240,33 +240,25 @@ namespace MiningCore.Api
 
         private async Task GetPoolInfosAsync(HttpContext context, Match m)
         {
-            // TODO: check projectId in projects repository.
-            var projectId = m.Groups["projectId"]?.Value;
-            if (string.IsNullOrEmpty(projectId))
-            {
-                context.Response.StatusCode = 404;
-                return;
-            }
-            
             var response = new GetPoolsResponse
             {
                 Pools = clusterConfig.Pools.Where(x => x.Enabled).Select(config =>
                 {
                     // load stats
-                    var stats = cf.Run(con => statsRepo.GetLastPoolStats(con, projectId, config.Id));
+                    var stats = cf.Run(con => statsRepo.GetLastPoolStats(con, config.Id));
 
                     // map
                     var result = config.ToPoolInfo(mapper, stats);
 
                     // enrich
-                    result.TotalPaid = cf.Run(con => statsRepo.GetTotalPoolPayments(con, projectId, config.Id));
+                    result.TotalPaid = cf.Run(con => statsRepo.GetTotalPoolPayments(con, config.Id));
 #if DEBUG
                     var from = new DateTime(2018, 1, 6, 16, 0, 0);
 #else
                     var from = clock.Now.AddDays(-1);
 #endif
                     result.TopMiners = cf.Run(con => statsRepo.PagePoolMinersByHashrate(
-                            con, projectId, config.Id, from, 0, 15))
+                            con, config.Id, from, 0, 15))
                         .Select(mapper.Map<MinerPerformanceStats>)
                         .ToArray();
 
@@ -279,20 +271,12 @@ namespace MiningCore.Api
 
         private async Task GetPoolInfoAsync(HttpContext context, Match m)
         {
-            // TODO: check projectId in projects repository.
-            var projectId = m.Groups["projectId"]?.Value;
-            if (string.IsNullOrEmpty(projectId))
-            {
-                context.Response.StatusCode = 404;
-                return;
-            }
-            
             var pool = GetPool(context, m);
             if (pool == null)
                 return;
 
             // load stats
-            var stats = cf.Run(con => statsRepo.GetLastPoolStats(con, projectId, pool.Id));
+            var stats = cf.Run(con => statsRepo.GetLastPoolStats(con, pool.Id));
 
             var response = new GetPoolResponse
             {
@@ -300,7 +284,7 @@ namespace MiningCore.Api
             };
 
             // enrich
-            response.Pool.TotalPaid = cf.Run(con => statsRepo.GetTotalPoolPayments(con, projectId, pool.Id));
+            response.Pool.TotalPaid = cf.Run(con => statsRepo.GetTotalPoolPayments(con, pool.Id));
 #if DEBUG
             var from = new DateTime(2018, 1, 7, 16, 0, 0);
 #else
@@ -308,7 +292,7 @@ namespace MiningCore.Api
 #endif
 
             response.Pool.TopMiners = cf.Run(con => statsRepo.PagePoolMinersByHashrate(
-                    con, projectId, pool.Id, from, 0, 15))
+                    con, pool.Id, from, 0, 15))
                 .Select(mapper.Map<MinerPerformanceStats>)
                 .ToArray();
 
@@ -317,14 +301,6 @@ namespace MiningCore.Api
 
         private async Task GetPoolPerformanceAsync(HttpContext context, Match m)
         {
-            // TODO: check projectId in projects repository.
-            var projectId = m.Groups["projectId"]?.Value;
-            if (string.IsNullOrEmpty(projectId))
-            {
-                context.Response.StatusCode = 404;
-                return;
-            }
-            
             var pool = GetPool(context, m);
             if (pool == null)
                 return;
@@ -334,7 +310,7 @@ namespace MiningCore.Api
             var start = end.AddDays(-1);
 
             var stats = cf.Run(con => statsRepo.GetPoolPerformanceBetweenHourly(
-                con, projectId, pool.Id, start, end));
+                con, pool.Id, start, end));
 
             var response = new GetPoolStatsResponse
             {
@@ -346,14 +322,6 @@ namespace MiningCore.Api
 
         private async Task PagePoolMinersAsync(HttpContext context, Match m)
         {
-            // TODO: check projectId in projects repository.
-            var projectId = m.Groups["projectId"]?.Value;
-            if (string.IsNullOrEmpty(projectId))
-            {
-                context.Response.StatusCode = 404;
-                return;
-            }
-
             var pool = GetPool(context, m);
             if (pool == null)
                 return;
@@ -372,7 +340,7 @@ namespace MiningCore.Api
             }
 
             var miners = cf.Run(con => statsRepo.PagePoolMinersByHashrate(
-                    con, projectId, pool.Id, start, page, pageSize))
+                    con, pool.Id, start, page, pageSize))
                 .Select(mapper.Map<MinerPerformanceStats>)
                 .ToArray();
 
@@ -500,7 +468,7 @@ namespace MiningCore.Api
             var perfMode = context.GetQueryParameter<string>("perfMode", "day");
 
             var statsResult = cf.RunTx((con, tx) =>
-                statsRepo.GetMinerStats(con, tx, projectId, pool.Id, address), true, IsolationLevel.Serializable);
+                statsRepo.GetMinerStats(con, tx, pool.Id, address), true, IsolationLevel.Serializable);
 
             MinerStats stats = null;
 
@@ -519,7 +487,7 @@ namespace MiningCore.Api
                         stats.LastPaymentLink = string.Format(baseUrl, statsResult.LastPayment.TransactionConfirmationData);
                 }
 
-                stats.PerformanceSamples = GetMinerPerformanceInternal(perfMode, projectId, pool, address);
+                stats.PerformanceSamples = GetMinerPerformanceInternal(perfMode, pool, address);
             }
 
             await SendJsonAsync(context, stats);
@@ -618,14 +586,6 @@ namespace MiningCore.Api
 
         private async Task GetMinerPerformanceAsync(HttpContext context, Match m)
         {
-            // TODO: check projectId in projects repository.
-            var projectId = m.Groups["projectId"]?.Value;
-            if (string.IsNullOrEmpty(projectId))
-            {
-                context.Response.StatusCode = 404;
-                return;
-            }
-            
             var pool = GetPool(context, m);
             if (pool == null)
                 return;
@@ -638,7 +598,7 @@ namespace MiningCore.Api
             }
 
             var mode = context.GetQueryParameter<string>("mode", "day").ToLower(); // "day" or "month"
-            var result = GetMinerPerformanceInternal(mode, projectId, pool, address);
+            var result = GetMinerPerformanceInternal(mode,  pool, address);
 
             await SendJsonAsync(context, result);
         }

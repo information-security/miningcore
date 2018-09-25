@@ -254,7 +254,7 @@ namespace MiningCore.Mining
             {
                 logger.Debug(() => $"[{LogCat}] Loading pool stats");
 
-                var stats = cf.Run(con => statsRepo.GetAllProjectsLastPoolStats(con, poolConfig.Id));
+                var stats = cf.Run(con => statsRepo.GetLastPoolStats(con, poolConfig.Id));
 
                 if (stats != null)
                 {
