@@ -25,7 +25,6 @@ namespace MiningCore.Persistence.Postgres.Entities
     public class MinerWorkerPerformanceStats
     {
         public long Id { get; set; }
-        public string ProjectId { get; set; }
         public string PoolId { get; set; }
         public string Miner { get; set; }
         public string Worker { get; set; }
