@@ -2,6 +2,11 @@
 
 set role miningcore;
 
+CREATE TABLE projects
+(
+  projectid TEXT NOT NULL PRIMARY KEY,
+)
+
 CREATE TABLE shares
 (
   projectid TEXT NOT NULL,
