@@ -56,6 +56,7 @@ namespace MiningCore.Mining
         protected PoolBase(IComponentContext ctx,
             JsonSerializerSettings serializerSettings,
             IConnectionFactory cf,
+            IProjectRepository projectRepo,
             IStatsRepository statsRepo,
             IMapper mapper,
             IMasterClock clock,
@@ -64,6 +65,7 @@ namespace MiningCore.Mining
             Contract.RequiresNonNull(ctx, nameof(ctx));
             Contract.RequiresNonNull(serializerSettings, nameof(serializerSettings));
             Contract.RequiresNonNull(cf, nameof(cf));
+            Contract.RequiresNonNull(projectRepo, nameof(projectRepo));
             Contract.RequiresNonNull(statsRepo, nameof(statsRepo));
             Contract.RequiresNonNull(mapper, nameof(mapper));
             Contract.RequiresNonNull(clock, nameof(clock));
@@ -71,6 +73,7 @@ namespace MiningCore.Mining
 
             this.serializerSettings = serializerSettings;
             this.cf = cf;
+            this.projectRepo = projectRepo;
             this.statsRepo = statsRepo;
             this.mapper = mapper;
             this.messageBus = messageBus;
@@ -79,6 +82,7 @@ namespace MiningCore.Mining
         protected PoolStats poolStats = new PoolStats();
         protected readonly JsonSerializerSettings serializerSettings;
         protected readonly IConnectionFactory cf;
+        protected readonly IProjectRepository projectRepo;
         protected readonly IStatsRepository statsRepo;
         protected readonly IMapper mapper;
         protected readonly IMessageBus messageBus;

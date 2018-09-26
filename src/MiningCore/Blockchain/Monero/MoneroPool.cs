@@ -31,6 +31,7 @@ using AutoMapper;
 using MiningCore.Blockchain.Monero.StratumRequests;
 using MiningCore.Blockchain.Monero.StratumResponses;
 using MiningCore.Configuration;
+using MiningCore.Extensions;
 using MiningCore.JsonRpc;
 using MiningCore.Messaging;
 using MiningCore.Mining;
@@ -50,11 +51,12 @@ namespace MiningCore.Blockchain.Monero
         public MoneroPool(IComponentContext ctx,
             JsonSerializerSettings serializerSettings,
             IConnectionFactory cf,
+            IProjectRepository projectRepo,
             IStatsRepository statsRepo,
             IMapper mapper,
             IMasterClock clock,
             IMessageBus messageBus) :
-            base(ctx, serializerSettings, cf, statsRepo, mapper, clock, messageBus)
+            base(ctx, serializerSettings, cf, projectRepo, statsRepo, mapper, clock, messageBus)
         {
         }
 
@@ -97,9 +99,9 @@ namespace MiningCore.Blockchain.Monero
                 context.MinerName = context.MinerName.Substring(0, index).Trim();
             }
 
-            // validate login
-            // TODO: check project ID existence in projects repo
-            var result = manager.ValidateAddress(context.MinerName) && !string.IsNullOrEmpty(context.ProjectId);;
+            // validate login and project ID existance
+            var result = manager.ValidateAddress(context.MinerName) && !string.IsNullOrEmpty(context.ProjectId)
+                                                                    && cf.Run(con => projectRepo.Exists(con, context.ProjectId));
 
             context.IsSubscribed = result;
             context.IsAuthorized = result;

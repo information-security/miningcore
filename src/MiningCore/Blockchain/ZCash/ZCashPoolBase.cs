@@ -49,11 +49,12 @@ namespace MiningCore.Blockchain.ZCash
         public ZCashPoolBase(IComponentContext ctx,
             JsonSerializerSettings serializerSettings,
             IConnectionFactory cf,
+            IProjectRepository projectRepo,
             IStatsRepository statsRepo,
             IMapper mapper,
             IMasterClock clock,
             IMessageBus messageBus) :
-            base(ctx, serializerSettings, cf, statsRepo, mapper, clock, messageBus)
+            base(ctx, serializerSettings, cf, projectRepo, statsRepo, mapper, clock, messageBus)
         {
         }
 

@@ -49,11 +49,12 @@ namespace MiningCore.Blockchain.Ethereum
         public EthereumPool(IComponentContext ctx,
             JsonSerializerSettings serializerSettings,
             IConnectionFactory cf,
+            IProjectRepository projectRepo,
             IStatsRepository statsRepo,
             IMapper mapper,
             IMasterClock clock,
             IMessageBus messageBus) :
-            base(ctx, serializerSettings, cf, statsRepo, mapper, clock, messageBus)
+            base(ctx, serializerSettings, cf, projectRepo, statsRepo, mapper, clock, messageBus)
         {
         }
 
@@ -122,10 +123,9 @@ namespace MiningCore.Blockchain.Ethereum
             var projectId = workerParts?.Length > 1 ? workerParts[1].Trim() : null;
             var workerName = workerParts?.Length > 2 ? workerParts[2].Trim() : null;
 
-            // assumes that workerName is an address
-            // TODO: check project ID existence in projects repo
+            // assumes that workerName is an address and project ID is exists
             context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName)
-                                                                    && !string.IsNullOrEmpty(projectId);
+                                   && !string.IsNullOrEmpty(projectId) && cf.Run(con => projectRepo.Exists(con, projectId));
             context.MinerName = minerName;
             context.ProjectId = projectId;
             context.WorkerName = workerName;

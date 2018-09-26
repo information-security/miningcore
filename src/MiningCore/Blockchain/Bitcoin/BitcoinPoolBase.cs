@@ -29,6 +29,7 @@ using Autofac;
 using AutoMapper;
 using MiningCore.Blockchain.Bitcoin.DaemonResponses;
 using MiningCore.Configuration;
+using MiningCore.Extensions;
 using MiningCore.JsonRpc;
 using MiningCore.Messaging;
 using MiningCore.Mining;
@@ -49,11 +50,12 @@ namespace MiningCore.Blockchain.Bitcoin
         public BitcoinPoolBase(IComponentContext ctx,
             JsonSerializerSettings serializerSettings,
             IConnectionFactory cf,
+            IProjectRepository projectRepo,
             IStatsRepository statsRepo,
             IMapper mapper,
             IMasterClock clock,
             IMessageBus messageBus) :
-            base(ctx, serializerSettings, cf, statsRepo, mapper, clock, messageBus)
+            base(ctx, serializerSettings, cf, projectRepo, statsRepo, mapper, clock, messageBus)
         {
         }
 
@@ -117,10 +119,9 @@ namespace MiningCore.Blockchain.Bitcoin
             var projectId = split?.Skip(1).FirstOrDefault()?.Trim() ?? string.Empty;
             var workerName = split?.Skip(2).FirstOrDefault()?.Trim() ?? string.Empty;
 
-            // assumes that workerName is an address
-            // TODO: check project ID existence in projects repo
+            // assumes that workerName is an address and project ID is exists
             context.IsAuthorized = !string.IsNullOrEmpty(minerName) && await manager.ValidateAddressAsync(minerName)
-                                                                    && !string.IsNullOrEmpty(projectId);
+                                   && !string.IsNullOrEmpty(projectId) && cf.Run(con => projectRepo.Exists(con, projectId));
             context.MinerName = minerName;
             context.ProjectId = projectId;
             context.WorkerName = workerName;
