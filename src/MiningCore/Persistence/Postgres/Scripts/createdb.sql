@@ -4,7 +4,8 @@ set role miningcore;
 
 CREATE TABLE projects
 (
-  projectid TEXT NOT NULL PRIMARY KEY
+  id TEXT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL
 );
 
 CREATE TABLE shares
