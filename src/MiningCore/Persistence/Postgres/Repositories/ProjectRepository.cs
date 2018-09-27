@@ -37,7 +37,7 @@ namespace MiningCore.Persistence.Postgres.Repositories
     {
         public bool Exists(IDbConnection con, string projectId)
         {
-            var query = "select exists(select 1 from projects where projectid = @projectId)";
+            var query = "select exists(select 1 from projects where id = @projectId)";
 
             var exists = con.Query<bool>(query, new {projectId}).FirstOr(false);
             
