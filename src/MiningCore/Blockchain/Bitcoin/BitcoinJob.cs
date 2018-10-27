@@ -316,6 +316,8 @@ namespace MiningCore.Blockchain.Bitcoin
             var coinbase = SerializeCoinbase(extraNonce1, extraNonce2);
             var coinbaseHash = coinbaseHasher.Digest(coinbase);
 
+            var merkleRoot = mt.WithFirst(coinbaseHash);
+
             // hash block-header
             var headerBytes = SerializeHeader(coinbaseHash, nTime, nonce);
             var headerHash = headerHasher.Digest(headerBytes, (ulong) nTime);
@@ -338,14 +340,14 @@ namespace MiningCore.Blockchain.Bitcoin
                     ratio = shareDiff / context.PreviousDifficulty.Value;
 
                     if (ratio < 0.99)
-                        throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 1 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} header:{headerHash.ToHexString()}");
+                        throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 1 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} merkleRoot:{merkleRoot.ToHexString()} header:{headerHash.ToHexString()}");
 
                     // use previous difficulty
                     stratumDifficulty = context.PreviousDifficulty.Value;
                 }
 
                 else
-                    throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 2 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} header:{headerHash.ToHexString()}");
+                    throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 2 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} merkleRoot:{merkleRoot.ToHexString()} header:{headerHash.ToHexString()}");
             }
 
             var result = new Share
