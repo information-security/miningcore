@@ -340,14 +340,14 @@ namespace MiningCore.Blockchain.Bitcoin
                     ratio = shareDiff / context.PreviousDifficulty.Value;
 
                     if (ratio < 0.99)
-                        throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 1 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} merkleRoot:{merkleRoot.ToHexString()} header:{headerHash.ToHexString()}");
+                        throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 1 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} merkleRoot:{merkleRoot.ToHexString()} headerHash:{headerHash.ToHexString()} header:{headerBytes.ToHexString()}");
 
                     // use previous difficulty
                     stratumDifficulty = context.PreviousDifficulty.Value;
                 }
 
                 else
-                    throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 2 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} merkleRoot:{merkleRoot.ToHexString()} header:{headerHash.ToHexString()}");
+                    throw new StratumException(StratumError.LowDifficultyShare, $"low difficulty share 2 ({shareDiff}) coinbase:{coinbaseHash.ToHexString()} merkleRoot:{merkleRoot.ToHexString()} headerHash:{headerHash.ToHexString()} header:{headerBytes.ToHexString()}");
             }
 
             var result = new Share
