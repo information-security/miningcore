@@ -473,10 +473,14 @@ namespace MiningCore.Blockchain.Bitcoin
                 blockTargetValue = tmp.ToUInt256();
             }
 
+            Console.WriteLine("PreviousBlockHash: {0}", BlockTemplate.PreviousBlockhash);
+
             previousBlockHashReversedHex = BlockTemplate.PreviousBlockhash
                 .HexToByteArray()
                 .ReverseByteOrder()
                 .ToHexString();
+
+            Console.WriteLine("PreviousBlockHashReversed: {0}", previousBlockHashReversedHex);
 
             BuildMerkleBranches();
             BuildCoinbase();
