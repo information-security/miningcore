@@ -77,7 +77,7 @@ namespace Miningcore.Api.Controllers
 
             var count = await cf.RunTx(async (con, tx) =>
             {
-                return await balanceRepo.AddAmountAsync(con, tx, request.PoolId, request.Address, request.Amount, request.Usage);
+                return await balanceRepo.AddAmountAsync(con, tx, 0, request.PoolId,request.Address, request.Amount, request.Usage);
             });
 
             var newBalance = await cf.Run(con => balanceRepo.GetBalanceAsync(con, request.PoolId, request.Address));

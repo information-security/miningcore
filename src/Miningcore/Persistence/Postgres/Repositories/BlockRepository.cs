@@ -49,8 +49,8 @@ namespace Miningcore.Persistence.Postgres.Repositories
             var mapped = mapper.Map<Entities.Block>(block);
 
             const string query =
-                "INSERT INTO blocks(poolid, blockheight, networkdifficulty, status, type, transactionconfirmationdata, miner, reward, effort, confirmationprogress, source, hash, created) " +
-                "VALUES(@poolid, @blockheight, @networkdifficulty, @status, @type, @transactionconfirmationdata, @miner, @reward, @effort, @confirmationprogress, @source, @hash, @created)";
+                "INSERT INTO blocks(projectid, poolid, blockheight, networkdifficulty, status, type, transactionconfirmationdata, miner, reward, effort, confirmationprogress, source, hash, created) " +
+                "VALUES(@projectid, @poolid, @blockheight, @networkdifficulty, @status, @type, @transactionconfirmationdata, @miner, @reward, @effort, @confirmationprogress, @source, @hash, @created)";
 
             await con.ExecuteAsync(query, mapped, tx);
         }
@@ -117,15 +117,16 @@ namespace Miningcore.Persistence.Postgres.Repositories
                 .ToArray();
         }
 
-        public async Task<Block> GetBlockBeforeAsync(IDbConnection con, string poolId, BlockStatus[] status, DateTime before)
+        public async Task<Block> GetBlockBeforeAsync(IDbConnection con, long projectId, string poolId, BlockStatus[] status, DateTime before)
         {
             logger.LogInvoke(new[] { poolId });
 
-            const string query = "SELECT * FROM blocks WHERE poolid = @poolid AND status = ANY(@status) AND created < @before " +
+            const string query = "SELECT * FROM blocks WHERE projectid = @projectid AND poolid = @poolid AND status = ANY(@status) AND created < @before " +
                 "ORDER BY created DESC FETCH NEXT (1) ROWS ONLY";
 
             return (await con.QueryAsync<Entities.Block>(query, new
                 {
+                    projectId,
                     poolId,
                     before,
                     status = status.Select(x => x.ToString().ToLower()).ToArray()

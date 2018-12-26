@@ -1,7 +1,59 @@
-﻿set role miningcore;
+﻿-- TODO: indexes
+
+CREATE TABLE projects
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE admins
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    login TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL
+);
+
+CREATE TABLE users
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    external_id TEXT,
+    email TEXT,
+    password_hash TEXT,
+    name TEXT,
+    avatar_url TEXT,
+    email_confirmed BOOLEAN DEFAULT false
+);
+
+CREATE TABLE user_addresses
+(
+    user_id BIGSERIAL NOT NULL REFERENCES users (id),
+    coin TEXT NOT NULL,
+    address TEXT NOT NULL
+);
+
+CREATE TABLE user_password_resets (
+    user_id BIGSERIAL NOT NULL REFERENCES users (id),
+    created_at TIMESTAMP WITH TIME ZONE,
+    code text
+);
+
+CREATE TABLE user_email_confirmations (
+    user_id BIGSERIAL NOT NULL REFERENCES users (id),
+    created_at TIMESTAMP WITH TIME ZONE,
+    code TEXT,
+    email TEXT
+);
+
+
+
+------------------------------------------------------------------------------------------------------------------------
 
 CREATE TABLE shares
 (
+    projectid BIGSERIAL NOT NULL REFERENCES projects (id),
 	poolid TEXT NOT NULL,
 	blockheight BIGINT NOT NULL,
 	difficulty DOUBLE PRECISION NOT NULL,
@@ -21,6 +73,7 @@ CREATE INDEX IDX_SHARES_POOL_MINER_DIFFICULTY on shares(poolid, miner, difficult
 CREATE TABLE blocks
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+	projectid BIGSERIAL NOT NULL REFERENCES projects (id),
 	poolid TEXT NOT NULL,
 	blockheight BIGINT NOT NULL,
 	networkdifficulty DOUBLE PRECISION NOT NULL,
@@ -42,6 +95,7 @@ CREATE INDEX IDX_BLOCKS_POOL_BLOCK_STATUS on blocks(poolid, blockheight, status)
 
 CREATE TABLE balances
 (
+    projectid BIGSERIAL NOT NULL REFERENCES projects (id),
 	poolid TEXT NOT NULL,
 	address TEXT NOT NULL,
 	amount decimal(28,12) NOT NULL DEFAULT 0,
@@ -54,6 +108,7 @@ CREATE TABLE balances
 CREATE TABLE balance_changes
 (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
+    projectid BIGSERIAL NOT NULL REFERENCES projects (id),
 	poolid TEXT NOT NULL,
 	address TEXT NOT NULL,
 	amount decimal(28,12) NOT NULL DEFAULT 0,

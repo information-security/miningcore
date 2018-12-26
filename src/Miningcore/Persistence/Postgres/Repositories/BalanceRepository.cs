@@ -41,18 +41,19 @@ namespace Miningcore.Persistence.Postgres.Repositories
         private readonly IMapper mapper;
         private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 
-        public async Task<int> AddAmountAsync(IDbConnection con, IDbTransaction tx, string poolId, string address, decimal amount, string usage)
+        public async Task<int> AddAmountAsync(IDbConnection con, IDbTransaction tx, long projectId, string poolId, string address, decimal amount, string usage)
         {
             logger.LogInvoke();
 
             var now = DateTime.UtcNow;
 
             // record balance change
-            var query = "INSERT INTO balance_changes(poolid, address, amount, usage, created) " +
-                "VALUES(@poolid, @address, @amount, @usage, @created)";
+            var query = "INSERT INTO balance_changes(projectid, poolid, address, amount, usage, created) " +
+                "VALUES(@projectid, @poolid, @address, @amount, @usage, @created)";
 
             var balanceChange = new Entities.BalanceChange
             {
+                ProjectId = projectId,
                 PoolId = poolId,
                 Created = now,
                 Address = address,
@@ -63,15 +64,16 @@ namespace Miningcore.Persistence.Postgres.Repositories
             await con.ExecuteAsync(query, balanceChange, tx);
 
             // update balance
-            query = "SELECT * FROM balances WHERE poolid = @poolId AND address = @address";
+            query = "SELECT * FROM balances WHERE projectid = @projectid AND poolid = @poolId AND address = @address";
 
-            var balance = (await con.QueryAsync<Entities.Balance>(query, new { poolId, address }, tx))
+            var balance = (await con.QueryAsync<Entities.Balance>(query, new { projectId, poolId, address }, tx))
                 .FirstOrDefault();
 
             if (balance == null)
             {
                 balance = new Entities.Balance
                 {
+                    ProjectId = projectId,
                     PoolId = poolId,
                     Created = now,
                     Address = address,
@@ -79,8 +81,8 @@ namespace Miningcore.Persistence.Postgres.Repositories
                     Updated = now
                 };
 
-                query = "INSERT INTO balances(poolid, address, amount, created, updated) " +
-                    "VALUES(@poolid, @address, @amount, @created, @updated)";
+                query = "INSERT INTO balances(projectid, poolid, address, amount, created, updated) " +
+                    "VALUES(@projectid, @poolid, @address, @amount, @created, @updated)";
 
                 return await con.ExecuteAsync(query, balance, tx);
             }
@@ -88,10 +90,11 @@ namespace Miningcore.Persistence.Postgres.Repositories
             else
             {
                 query = "UPDATE balances SET amount = amount + @amount, updated = now() at time zone 'utc' " +
-                    "WHERE poolid = @poolId AND address = @address";
+                    "WHERE projectid = @projectid AND poolid = @poolId AND address = @address";
 
                 return await con.ExecuteAsync(query, new
                 {
+                    projectId,
                     poolId,
                     address,
                     amount

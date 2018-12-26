@@ -24,6 +24,7 @@ namespace Miningcore.Persistence.Model
 {
     public class Share
     {
+        public long ProjectId { get; set; }
         public string PoolId { get; set; }
         public ulong BlockHeight { get; set; }
         public string Miner { get; set; }

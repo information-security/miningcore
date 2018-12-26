@@ -98,14 +98,14 @@ namespace Miningcore.Payments.PaymentSchemes
                 if (amount > 0)
                 {
                     logger.Info(() => $"Adding {payoutHandler.FormatAmount(amount)} to balance of {address} for {FormatUtil.FormatQuantity(shares[address])} ({shares[address]}) shares for block {block.BlockHeight}");
-                    await balanceRepo.AddAmountAsync(con, tx, poolConfig.Id, address, amount, $"Reward for {FormatUtil.FormatQuantity(shares[address])} shares for block {block.BlockHeight}");
+                    await balanceRepo.AddAmountAsync(con, tx, block.ProjectId, poolConfig.Id, address, amount, $"Reward for {FormatUtil.FormatQuantity(shares[address])} shares for block {block.BlockHeight}");
                 }
             }
 
             // delete discarded shares
             if (shareCutOffDate.HasValue)
             {
-                var cutOffCount = await shareRepo.CountSharesBeforeCreatedAsync(con, tx, poolConfig.Id, shareCutOffDate.Value);
+                var cutOffCount = await shareRepo.CountSharesBeforeCreatedAsync(con, tx, block.ProjectId, poolConfig.Id, shareCutOffDate.Value);
 
                 if (cutOffCount > 0)
                 {
@@ -138,7 +138,7 @@ namespace Miningcore.Payments.PaymentSchemes
                 logger.Info(() => $"Fetching page {currentPage} of discarded shares for pool {poolConfig.Id}, block {block.BlockHeight}");
 
                 var page = await shareReadFaultPolicy.ExecuteAsync(() =>
-                    cf.Run(con => shareRepo.ReadSharesBeforeCreatedAsync(con, poolConfig.Id, before, false, pageSize)));
+                    cf.Run(con => shareRepo.ReadSharesBeforeCreatedAsync(con, block.ProjectId, poolConfig.Id, before, false, pageSize)));
 
                 currentPage++;
 
@@ -192,7 +192,7 @@ namespace Miningcore.Payments.PaymentSchemes
                 logger.Info(() => $"Fetching page {currentPage} of shares for pool {poolConfig.Id}, block {block.BlockHeight}");
 
                 var page = await shareReadFaultPolicy.ExecuteAsync(() =>
-                    cf.Run(con => shareRepo.ReadSharesBeforeCreatedAsync(con, poolConfig.Id, before, inclusive, pageSize))); //, sw, logger));
+                    cf.Run(con => shareRepo.ReadSharesBeforeCreatedAsync(con, block.ProjectId, poolConfig.Id, before, inclusive, pageSize))); //, sw, logger));
 
                 inclusive = false;
                 currentPage++;

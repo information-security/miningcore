@@ -27,7 +27,7 @@ namespace Miningcore.Persistence.Repositories
 {
     public interface IBalanceRepository
     {
-        Task<int> AddAmountAsync(IDbConnection con, IDbTransaction tx, string poolId, string address, decimal amount, string usage);
+        Task<int> AddAmountAsync(IDbConnection con, IDbTransaction tx, long projectId, string poolId, string address, decimal amount, string usage);
         Task<decimal> GetBalanceAsync(IDbConnection con, string poolId, string address);
         Task<decimal> GetBalanceAsync(IDbConnection con, IDbTransaction tx, string poolId, string address);
 

@@ -26,6 +26,8 @@ namespace Miningcore.Blockchain
     [ProtoContract]
     public class Share
     {
+        public long ProjectId { get; set; }
+
         /// <summary>
         /// The pool originating this share from
         /// </summary>

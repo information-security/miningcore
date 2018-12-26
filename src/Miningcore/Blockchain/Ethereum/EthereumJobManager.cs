@@ -444,6 +444,7 @@ namespace Miningcore.Blockchain.Ethereum
             logger.LogInvoke(new[] { worker.ConnectionId });
             var context = worker.ContextAs<EthereumWorkerContext>();
 
+            var projectId = context.ProjectId;
             // var miner = request[0];
             var jobId = request[1];
             var nonce = request[2];
@@ -460,6 +461,7 @@ namespace Miningcore.Blockchain.Ethereum
             var (share, fullNonceHex, headerHash, mixHash) = await job.ProcessShareAsync(worker, nonce, ethash, ct);
 
             // enrich share with common data
+            share.ProjectId = projectId;
             share.PoolId = poolConfig.Id;
             share.NetworkDifficulty = BlockchainStats.NetworkDifficulty;
             share.Source = clusterConfig.ClusterName;

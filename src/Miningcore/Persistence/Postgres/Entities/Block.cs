@@ -25,6 +25,7 @@ namespace Miningcore.Persistence.Postgres.Entities
     public class Block
     {
         public long Id { get; set; }
+        public long ProjectId { get; set; }
         public string PoolId { get; set; }
         public long BlockHeight { get; set; }
         public double NetworkDifficulty { get; set; }

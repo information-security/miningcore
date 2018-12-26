@@ -97,7 +97,6 @@ namespace Miningcore.Payments
                     var scheme = ctx.ResolveKeyed<IPayoutScheme>(pool.PaymentProcessing.PayoutScheme);
 
                     await UpdatePoolBalancesAsync(pool, handler, scheme);
-                    await PayoutPoolBalancesAsync(pool, handler);
                 }
 
                 catch (InvalidOperationException ex)
@@ -185,29 +184,6 @@ namespace Miningcore.Payments
                 logger.Info(() => $"No updated blocks for pool {pool.Id}");
         }
 
-        private async Task PayoutPoolBalancesAsync(PoolConfig pool, IPayoutHandler handler)
-        {
-            var poolBalancesOverMinimum = await cf.Run(con =>
-                balanceRepo.GetPoolBalancesOverThresholdAsync(con, pool.Id, pool.PaymentProcessing.MinimumPayment));
-
-            if (poolBalancesOverMinimum.Length > 0)
-            {
-                try
-                {
-                    await handler.PayoutAsync(poolBalancesOverMinimum);
-                }
-
-                catch(Exception ex)
-                {
-                    await NotifyPayoutFailureAsync(poolBalancesOverMinimum, pool, ex);
-                    throw;
-                }
-            }
-
-            else
-                logger.Info(() => $"No balances over configured minimum payout for pool {pool.Id}");
-        }
-
         private Task NotifyPayoutFailureAsync(Balance[] balances, PoolConfig pool, Exception ex)
         {
             messageBus.SendMessage(new PaymentNotification(pool.Id, ex.Message, balances.Sum(x => x.Amount), pool.Template.Symbol));
@@ -222,7 +198,7 @@ namespace Miningcore.Payments
             var to = block.Created;
 
             // get last block for pool
-            var lastBlock = await cf.Run(con => blockRepo.GetBlockBeforeAsync(con, pool.Id, new[]
+            var lastBlock = await cf.Run(con => blockRepo.GetBlockBeforeAsync(con, block.ProjectId, pool.Id, new[]
             {
                 BlockStatus.Confirmed,
                 BlockStatus.Orphaned,
@@ -234,7 +210,7 @@ namespace Miningcore.Payments
 
             // get combined diff of all shares for block
             var accumulatedShareDiffForBlock = await cf.Run(con =>
-                shareRepo.GetAccumulatedShareDifficultyBetweenCreatedAsync(con, pool.Id, from, to));
+                shareRepo.GetAccumulatedShareDifficultyBetweenCreatedAsync(con, block.ProjectId, pool.Id, from, to));
 
             // handler has the final say
             if (accumulatedShareDiffForBlock.HasValue)

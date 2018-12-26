@@ -24,6 +24,8 @@ namespace Miningcore.Blockchain.Ethereum
 {
     public class EthereumWorkerContext : WorkerContextBase
     {
+        public long ProjectId { get; set; }
+
         /// <summary>
         /// Usually a wallet address
         /// </summary>
