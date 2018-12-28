@@ -50,15 +50,19 @@ namespace Miningcore.Blockchain.Ethereum
             JsonSerializerSettings serializerSettings,
             IConnectionFactory cf,
             IStatsRepository statsRepo,
+            IProjectsRepository projectsRepo,
             IMapper mapper,
             IMasterClock clock,
             IMessageBus messageBus) :
             base(ctx, serializerSettings, cf, statsRepo, mapper, clock, messageBus)
         {
+            this.projectsRepo = projectsRepo;
         }
 
         private object currentJobParams;
         private EthereumJobManager manager;
+
+        private readonly IProjectsRepository projectsRepo;
 
         private async Task OnSubscribeAsync(StratumClient client, Timestamped<JsonRpcRequest> tsRequest)
         {
@@ -124,8 +128,10 @@ namespace Miningcore.Blockchain.Ethereum
                 throw new StratumException(StratumError.MinusOne, "invalid project id format");
             }
 
+            var projectExists = await cf.Run(con => projectsRepo.ProjectExists(con, projectId));
+
             // assumes that workerName is an address
-            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName);
+            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName) && projectExists;
             context.ProjectId = projectId;
             context.Miner = minerName;
             context.Worker = workerName;
