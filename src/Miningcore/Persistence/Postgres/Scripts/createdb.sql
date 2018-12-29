@@ -1,9 +1,62 @@
 ﻿-- TODO: indexes
 
-CREATE TABLE projects
+CREATE TABLE users
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    external_id TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL DEFAULT '',
+    password_hash TEXT NOT NULL,
+    name TEXT NOT NULL,
+    about TEXT NOT NULL DEFAULT '',
+    avatar_url TEXT NOT NULL DEFAULT '',
+    email_confirmed BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE project_categories
 (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     name TEXT NOT NULL
+);
+
+CREATE TABLE countries
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE cities
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    county_id BIGSERIAL NOT NULL REFERENCES countries(id),
+    name TEXT NOT NULL
+);
+
+CREATE TABLE projects
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    user_id BIGSERIAL NOT NULL REFERENCES users (id),
+    
+    status TEXT NOT NULL,
+    
+    goal DECIMAL NOT NULL,
+    duration INT NOT NULL,
+    
+    is_mining_open BOOL NOT NULL DEFAULT FALSE,
+    earn_best_miner DECIMAL NOT NULL DEFAULT 0,
+        
+    category_id BIGSERIAL NOT NULL REFERENCES project_categories(id),
+    city_id BIGSERIAL NOT NULL REFERENCES cities(id),
+    
+    title TEXT NOT NULL DEFAULT '',
+    short_description TEXT NOT NULL DEFAULT '',
+    full_description TEXT NOT NULL DEFAULT '',
+    cover TEXT NOT NULL DEFAULT '',
+    video TEXT NOT NULL DEFAULT '',
+    facebook TEXT NOT NULL DEFAULT '',
+    twitter TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE admins
@@ -11,20 +64,6 @@ CREATE TABLE admins
     id BIGSERIAL NOT NULL PRIMARY KEY,
     login TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL
-);
-
-CREATE TABLE users
-(
-    id BIGSERIAL NOT NULL PRIMARY KEY,
-    created_at TIMESTAMP WITH TIME ZONE,
-    updated_at TIMESTAMP WITH TIME ZONE,
-    deleted_at TIMESTAMP WITH TIME ZONE,
-    external_id TEXT,
-    email TEXT,
-    password_hash TEXT,
-    name TEXT,
-    avatar_url TEXT,
-    email_confirmed BOOLEAN DEFAULT false
 );
 
 CREATE TABLE user_addresses
@@ -36,15 +75,15 @@ CREATE TABLE user_addresses
 
 CREATE TABLE user_password_resets (
     user_id BIGSERIAL NOT NULL REFERENCES users (id),
-    created_at TIMESTAMP WITH TIME ZONE,
-    code text
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    code TEXT NOT NULL
 );
 
 CREATE TABLE user_email_confirmations (
     user_id BIGSERIAL NOT NULL REFERENCES users (id),
-    created_at TIMESTAMP WITH TIME ZONE,
-    code TEXT,
-    email TEXT
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    code TEXT NOT NULL,
+    email TEXT NOT NULL
 );
 
 

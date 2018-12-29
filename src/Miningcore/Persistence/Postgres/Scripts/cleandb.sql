@@ -1,8 +1,6 @@
 ﻿DROP TABLE admins;
 DROP TABLE balances;
 DROP TABLE balance_changes;
-DROP TABLE balances;
-DROP TABLE blocks;
 DROP TABLE blocks;
 DROP TABLE minerstats;
 DROP TABLE payments;
@@ -11,5 +9,8 @@ DROP TABLE shares;
 DROP TABLE user_addresses;
 DROP TABLE user_email_confirmations;
 DROP TABLE user_password_resets;
-DROP TABLE users;
 DROP TABLE projects;
+DROP TABLE project_categories;
+DROP TABLE cities;
+DROP TABLE countries;
+DROP TABLE users;
