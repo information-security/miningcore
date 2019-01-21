@@ -5,6 +5,6 @@ namespace Miningcore.Persistence.Repositories
 {
     public interface IProjectsRepository
     {
-        Task<bool> ProjectExists(IDbConnection con, long projectID);
+        Task<long> GetProjectId(IDbConnection con, string userAddress);
     }
 }

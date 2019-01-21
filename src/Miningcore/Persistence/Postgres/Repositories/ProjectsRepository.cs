@@ -11,13 +11,14 @@ namespace Miningcore.Persistence.Postgres.Repositories
     {
         private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
         
-        public async Task<bool> ProjectExists(IDbConnection con, long projectID)
+        public async Task<long> GetProjectId(IDbConnection con, string userAddress)
         {
             logger.LogInvoke();
-            
-            const string query = "SELECT EXISTS(SELECT 1 FROM projects WHERE id = @projectid)";
 
-            return await con.QuerySingleOrDefaultAsync<bool>(query, new { projectID });
+            const string query =
+                "SELECT ump.project_id FROM user_mining_projects AS ump LEFT JOIN users AS u ON ump.user_id = u.id WHERE u.eth_address = @userAddress";
+
+            return await con.QuerySingleOrDefaultAsync<long>(query, new { userAddress });
         }
     }
 }

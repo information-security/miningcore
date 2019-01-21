@@ -114,24 +114,22 @@ namespace Miningcore.Blockchain.Ethereum
             // extract worker/miner
             var workerParts = workerValue?.Split('.');
             var minerName = workerParts?.Length > 0 ? workerParts[0].Trim() : null;
-            var projectIdStr = workerParts?.Length > 1 ? workerParts[1].Trim() : null;
-            var workerName = workerParts?.Length > 2 ? workerParts[2].Trim() : null;
+            var workerName = workerParts?.Length > 1 ? workerParts[1].Trim() : null;
 
             long projectId;
 
             try
             {
-                projectId = Convert.ToInt64(projectIdStr);
+                projectId = await cf.Run(con => projectsRepo.GetProjectId(con, minerName));
             }
             catch
             {
-                throw new StratumException(StratumError.MinusOne, "invalid project id format");
+                throw new StratumException(StratumError.MinusOne, "internal error");                
             }
-
-            var projectExists = await cf.Run(con => projectsRepo.ProjectExists(con, projectId));
+               
 
             // assumes that workerName is an address
-            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName) && projectExists;
+            context.IsAuthorized = !string.IsNullOrEmpty(minerName) && manager.ValidateAddress(minerName) && projectId != 0;
             context.ProjectId = projectId;
             context.Miner = minerName;
             context.Worker = workerName;
